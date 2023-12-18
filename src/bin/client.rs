@@ -13,6 +13,7 @@ enum Command {
 
 #[tokio::main]
 async fn main() {
+    let fps = 60;
     // Establish a connection to the server
     let mut client = client::connect("127.0.0.1:6379").await.unwrap();
     let first_pos: Bytes = vec![0, 0].into();
@@ -27,9 +28,15 @@ async fn main() {
     loop {
         let start = Instant::now();
         //--code--
-        println!("{:?}", client.get("PlayerUpdate").await.unwrap().unwrap().iter().collect::<Vec<&u8>>());
-        println!("{:?}", client.get("PlayerUpdate").await.unwrap().unwrap());
-        if poll(std::time::Duration::from_millis(200)).unwrap() {
+        // PUD = Player Update flag
+        // println!("{:?}", client.get("PUD").await.unwrap().unwrap().iter().collect::<Vec<&u8>>());
+        // println!("{:?}", client.get("PUD").await.unwrap().unwrap());
+        let player_pos_raw = client.get("PUD").await.unwrap().unwrap();
+        let player_positions: Vec<(&str, [u8; 2])> = split_bytes(&player_pos_raw).await;
+        for (player_name, coords) in player_positions {
+            println!("{}: {:?}", player_name, coords);
+        }
+        if poll(std::time::Duration::from_millis(fps - 1)).unwrap() {
             match read().unwrap() {
                 Event::Key(key) => {
                     change_pos(key.code, "P1", &mut client).await;
@@ -37,11 +44,10 @@ async fn main() {
                 _ => {continue;}
             }
         }
-
         //--code--
         let duration = start.elapsed();
-        if duration < Duration::from_millis(60) {
-            tokio::time::sleep(Duration::from_millis(60) - duration).await;
+        if duration < Duration::from_millis(fps) {
+            tokio::time::sleep(Duration::from_millis(fps) - duration).await;
         }
     }
 }
@@ -100,4 +106,17 @@ async fn change_pos(key: KeyCode, player_name: &str, client: &mut client::Client
         client.get(player_name).await.unwrap().unwrap()[0],
         client.get(player_name).await.unwrap().unwrap()[1]
     );
+}
+
+
+async fn split_bytes(bytes: &Bytes) -> Vec<(&str, [u8; 2])> {
+    let mut player_positions: Vec<(&str, [u8; 2])> = Vec::new();
+    let mut split_bytes= bytes.split(|x| x == &b';');
+    for player in split_bytes {
+        let mut split_player = player.split(|x| x == &b':');
+        let player_name = std::str::from_utf8(split_player.next().expect("not enough values")).expect("invalid utf8");
+        let coords: [u8; 2] = [split_player.next().unwrap()[0], split_player.next().unwrap()[0]];
+        player_positions.push((player_name, coords));
+    }
+    player_positions
 }

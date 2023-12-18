@@ -42,12 +42,10 @@ async fn process(socket: TcpStream, db: Db) {
             }
             Get(cmd) => {
                 let db = db.lock().unwrap();
-                if cmd.key() == "PlayerUpdate" {
+                if cmd.key() == "PUD" {
                     let mut player_update = String::new();
                     for (key, value) in db.iter() {
-                        if key.starts_with("P") {
-                            player_update.push_str(&format!("{}:{};", key, String::from_utf8(value.to_vec()).unwrap()));
-                        }
+                        player_update.push_str(&format!("{}:{};", key, String::from_utf8(value.to_vec()).unwrap()));
                     }
                     Frame::Bulk(player_update.into())
                 }
