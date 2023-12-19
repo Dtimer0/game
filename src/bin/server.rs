@@ -23,6 +23,7 @@ async fn main() {
 }
 
 async fn process(socket: TcpStream, player_positions: player_positions, sender: std::net::SocketAddr) {
+    let screen_size = [300, 300];
     use mini_redis::Command::{self, Get, Set};
 
     // Connection, provided by `mini-redis`, handles parsing frames from
@@ -49,7 +50,7 @@ async fn process(socket: TcpStream, player_positions: player_positions, sender: 
                     println!("Player pos array: {:?}", player_pos_array);
                     let player_movement = player_movement.get(cmd.key()).unwrap();
                     if player_movement[0] == 1 {
-                        if player_pos_array[0] < 255 {
+                        if player_pos_array[0] < screen_size[0] {
                             player_pos_array[0] += 1;
                         } 
                     }
@@ -59,7 +60,7 @@ async fn process(socket: TcpStream, player_positions: player_positions, sender: 
                         }
                     }
                     if player_movement[1] == 1 {
-                        if player_pos_array[1] < 255 {
+                        if player_pos_array[1] < screen_size[1] {
                             player_pos_array[1] += 1;
                         } 
                     }
@@ -85,10 +86,10 @@ async fn process(socket: TcpStream, player_positions: player_positions, sender: 
     }
 }
 
-async fn split_coords(text: String) -> [u8; 2] {
+async fn split_coords(text: String) -> [u16; 2] {
     let mut split_text = text.split(|x| x == ',');
     for i in split_text.clone() {
         println!("{:?}", i);
     }
-    [split_text.next().unwrap().trim().parse::<u8>().unwrap(), split_text.next().unwrap().trim().parse::<u8>().unwrap()]
+    [split_text.next().unwrap().trim().parse::<u16>().unwrap(), split_text.next().unwrap().trim().parse::<u16>().unwrap()]
 }

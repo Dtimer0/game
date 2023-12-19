@@ -15,7 +15,7 @@ async fn main() {
     let fps = 60;
     // Establish a connection to the server
     let mut client = client::connect("127.0.0.1:6379").await.unwrap();
-    let _ = client.set("127.0.0.1", "0,0".into()).await;
+    let _ = client.set("127.0.0.1", "0,300".into()).await;
     // enable_raw_mode().unwrap();
     loop {
         let start = Instant::now();
