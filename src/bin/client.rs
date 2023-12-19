@@ -16,9 +16,9 @@ enum Command {
 async fn main() {
     disable_raw_mode().unwrap();
     let fps = 60;
-    // Establish a connection to the server
-    let mut client = client::connect("127.0.0.1:6379").await.unwrap();// server ip and port here 
-    let formated_ip = format!("{}", local_ip().unwrap());
+    // Establish a connection to the server 
+    let mut client = client::connect("10.125.64.231:6379").await.unwrap();// server ip and port 
+    let formated_ip = format!("{}", local_ip().unwrap()); 
     println!("Your local ip is: {}", formated_ip);
     let x = client.set(&formated_ip, "150, 150".into()).await; // player starting position
     if x.is_err() {
