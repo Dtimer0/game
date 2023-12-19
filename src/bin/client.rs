@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use crossterm::event::{poll, read, Event, KeyCode};
-use crossterm::terminal::enable_raw_mode;
+use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
 use mini_redis::client;
 use std::time::{Duration, Instant};
 use local_ip_address::local_ip;
@@ -14,14 +14,18 @@ enum Command {
 
 #[tokio::main]
 async fn main() {
+    disable_raw_mode().unwrap();
     let fps = 60;
     // Establish a connection to the server
     let mut client = client::connect("127.0.0.1:6379").await.unwrap();// server ip and port here 
     let formated_ip = format!("{}", local_ip().unwrap());
     println!("Your local ip is: {}", formated_ip);
-    client.set(&formated_ip, "0,300".into()).await; // player starting position
-    // enable_raw_mode().unwrap();
+    let x = client.set(&formated_ip, "150, 150".into()).await; // player starting position
+    if x.is_err() {
+        println!("Error: {:?}", x);
+    }
     loop {
+        
         let start = Instant::now(); 
         // PUD = Player Update flag
         let player_pos_raw = client.get("PUD").await.unwrap().unwrap();/*looping player updates. 

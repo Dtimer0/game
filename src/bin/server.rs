@@ -12,13 +12,19 @@ Mutex is a guard that prevents multiple threads from accessing the same data at 
 
 #[tokio::main]
 async fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:6379").await.unwrap();
     println!("Listening");
     let player_positions: Arc<tokio::sync::Mutex<HashMap<String, Bytes>>> = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
     loop {
         let (socket, addr) = listener.accept().await.unwrap();
-        let player_positions = player_positions.clone(); // is vector: ip, position
+        for (ip, _) in player_positions.lock().await.iter() {
+            if ip == &addr.ip().to_string() {
+                println!("Already connected");
+                continue;
+            }
+        }
         println!("Accepted from: {}", addr.ip());
+        let player_positions = player_positions.clone(); // is vector: ip, position
         tokio::spawn(async move { // spawns a thread for each client connected
             process(socket, player_positions, addr).await;
         });
@@ -50,7 +56,6 @@ async fn process(socket: TcpStream, player_positions: player_positions, sender: 
                     Frame::Bulk(player_update.into())
                 } else if cmd.key() == "w" || cmd.key() == "a" || cmd.key() == "s" || cmd.key() == "d" { // handles player movement
                     let mut player_pos_array = split_coords(String::from_utf8(player_positions.get(&sender.ip().to_string()).unwrap().to_vec()).unwrap()).await;
-                    println!("Player pos array: {:?}", player_pos_array);
                     let player_movement = player_movement.get(cmd.key()).unwrap();
                     if player_movement[0] == 1 { // this ugly shit is because we have to subtract i8 from u8, which is not allowed. Also makes sure bounds are checked.
                         if player_pos_array[0] < screen_size[0] {
@@ -91,8 +96,5 @@ async fn process(socket: TcpStream, player_positions: player_positions, sender: 
 
 async fn split_coords(text: String) -> [u16; 2] { // splits bytes like "0,300" into [0, 300]
     let mut split_text = text.split(|x| x == ',');
-    for i in split_text.clone() {
-        println!("{:?}", i);
-    }
     [split_text.next().unwrap().trim().parse::<u16>().unwrap(), split_text.next().unwrap().trim().parse::<u16>().unwrap()]
 }
