@@ -1,9 +1,11 @@
 use bytes::Bytes;
 use crossterm::event::{poll, read, Event, KeyCode};
 use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
-use mini_redis::client;
+use mini_redis::client::{self, Client};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use local_ip_address::local_ip;
+
 #[allow(unused_imports)]
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -11,37 +13,63 @@ enum Command {
     Get { key: String },
     Set { key: String, val: Bytes },
 }
+struct Coordinate {
+    x: u16,
+    y: u16,
+
+}
+struct Obstacle {
+    coordinates: Coordinate,
+    size: u16,
+}
+struct Player {
+    name: String,
+    coordinates: Coordinate,
+    size: u16,
+}
+struct Projectile {
+    owner: Player,
+    coordinates: Coordinate,
+    size: u16,
+    velocity: (u16, u16), // angle, speed
+}
+enum Object {
+    Obstacle(Obstacle),
+    Player(Player),
+    Projectile(Projectile),
+}
+
 
 #[tokio::main]
 async fn main() {
     disable_raw_mode().unwrap();
     let fps = 60;
     // Establish a connection to the server 
-    let mut client = client::connect("10.125.64.231:6379").await.unwrap();// server ip and port 
-    let formated_ip = format!("{}", local_ip().unwrap()); 
+    let mut object_positions: Arc<tokio::sync::Mutex<Vec<Object>>> = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let mut client = client::connect("127.0.01:6379").await.unwrap();// server ip and port 
+    let formated_ip = format!("{}", local_ip().unwrap());
     println!("Your local ip is: {}", formated_ip);
-    let x = client.set(&formated_ip, "150, 150".into()).await; // player starting position
-    if x.is_err() {
-        println!("Error: {:?}", x);
-    }
     loop {
-        
         let start = Instant::now(); 
         // PUD = Player Update flag
-        let player_pos_raw = client.get("PUD").await.unwrap().unwrap();/*looping player updates. 
-        Probably a better way to do this, where the server sends all 
-        clients currently connected updates every time it receives an update 
-        but this is the best I got right now
-        */
-        println!("{:?}", player_pos_raw);
         if poll(std::time::Duration::from_millis(fps - 1)).unwrap() { // This is polling for input waiting for a keypress
             match read().unwrap() {
                 Event::Key(key) => {
-                    if &get_char(key.code).await == &' ' {} else { // Notice this is specifically parsing only when get char returns a char
-                        println!("Text being sent: {:?}", &get_char(key.code).await);
-                        println!("{:?}", client.get(&get_char(key.code).await.to_string()).await.unwrap().unwrap());
-                        // client.get(&get_char(key.code).await.to_string()).await.unwrap().unwrap()
-                        // above is the line of code that will tell the server to change the position based on what key was pressed
+                    match key.code {
+                        KeyCode::Char('w') => {
+
+                        }
+                        KeyCode::Char('a') => {
+                            
+                        }
+                        KeyCode::Char('s') => {
+                            
+                        }
+                        KeyCode::Char('d') => {
+                            
+                        }
+                        _ => {},
+
                     }
                 }
                 _ => {continue;}
